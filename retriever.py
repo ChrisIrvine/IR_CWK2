@@ -2,6 +2,7 @@
 # needs improving to remove forced type conversions
 
 import sys
+import math
 import re
 import json
 
@@ -9,7 +10,7 @@ import json
 docids = []
 postings = {}
 vocab = []
-
+doclength = {}
 
 def main():
     # code for testing offline
@@ -21,7 +22,8 @@ def main():
 
     read_index_files()
 
-    answer = retrieve_bool(query_terms)
+    #answer = retrieve_bool(query_terms)
+    answer = retrieve_vector(query_terms)
 
     print('Query: ', query_terms)
     i = 0
@@ -37,18 +39,22 @@ def read_index_files():
     global docids
     global postings
     global vocab
+    global doclength
     # open the files
     in_d = open('docids.txt', 'r')
     in_v = open('vocab.txt', 'r')
     in_p = open('postings.txt', 'r')
+    in_dl = open('doclength.txt', 'r')
     # load the data
     docids = json.load(in_d)
     vocab = json.load(in_v)
     postings = json.load(in_p)
+    doclength = json.load(in_dl)
     # close the files
     in_d.close()
     in_v.close()
     in_p.close()
+    in_dl.close()
 
     return
 
@@ -68,34 +74,93 @@ def clean_query(query_terms):
 def retrieve_bool(query_terms):
     ## a function to perform Boolean retrieval with ANDed terms
     answer = []
-    queryDict = {}
+    operator = ''
     #### your code starts here ####
-    # Clean the Query of all numbers, abbreviations and punctuations
-    cleanQ = clean_query(query_terms)
-    # Split the terms on spaces
-    queryList = [t.lower() for t in cleanQ.split()]
-    # Find the termID in the vocabulary
+    for plist in postings.get(vocab.index(query_terms[0])):
+        for post in plist:
+            answer.append(post)
 
-    for tokenID, token in enumerate(vocab):
-        if token in queryList:
-            queryDict[tokenID] = []
-            queryDict[tokenID].append(token)
+    for term in query_terms:
+        if term in ('AND', 'OR', 'NOT'):
+            operator = term
+            continue
+        try:
+            termid = vocab.index(term)
+        except:
+            print('Not found: ', term, ' is not in vocabulary')
+            continue
 
-    for token in queryList:
-        if token not in queryDict.__contains__(token):
-            print(token + " is not in indexed files")
+        if operator == 'OR':
+            for plist in postings.get(termid):
+                for post in plist:
+                    answer.append(post)
+            answer = sorted(list(set(answer)))
+            operator = ''
 
-    # Fetch the postings list
-    print(postings)
-    # Compare the IDs in the Query List to those in the Postings List
-    for queryDict[tokenID] in postings.keys():
+        elif operator == 'AND':
+            merge_list = answer[:]
+            answer = []
+            for plist in postings.get(termid):
+                for post in plist:
+                    print('post = ', post)
+                    if post in merge_list:
+                        answer.append(post)
+            answer = sorted(list(set(answer)))
+            merge_list = []
+            operator = ''
 
-
-    # Return all definite matches
-
+        elif operator == 'NOT':
+            for plist in postings.get(termid):
+                for post in plist:
+                    if post in answer:
+                        answer.remove(post)
+            operator = ''
     #### your code ends here ####
     return answer
 
+def retrieve_vector(query_terms):
+    global docids
+    global doclength
+    global vocab
+    global postings
+
+    answer = []
+    merge_list = []
+    idf = {}
+    scores = {}
+    query_vector = []
+    query_set = set(query_terms)
+
+    for term in query_set:
+        try:
+            termid = vocab.index(term.lower())
+            print('termid = ', termid)
+        except:
+            print('Not found: ', term, ' is not in vocabulary')
+            continue
+        idf[termid] = (1+math.log(len(postings.get(str(termid)))))/(len(doclength))
+        #print('retrieve_vector: term = ', term, 'termid = ', termid, 'idf = ', idf[termid])
+
+    i = -1
+    for termid in sorted(idf, key=idf.get, reverse=True):
+        i += 1
+        query_vector.append(idf[termid]/len(query_set))
+
+        for post in postings.get(str(termid)):
+            #print ('post[0] = ', post[0], ' post[1] = ', post[1], ' idf = ', idf.get(termid), ' doclength = ', doclength.get(post[0]))
+            if post[0] in scores:
+                scores[post[0]] += (idf.get(termid) * float(post[1])) / float(doclength.get(str(post[0]))) * query_vector[i]
+            else:
+                print(doclength.get(post[0]))
+                scores[post[0]] = (idf.get(termid) * float(post[1])) / float(doclength.get(str(post[0]))) * query_vector[i]
+            #print((idf.get(termid) * post[1]) / doclength.get(post[0]))
+
+    for docid in sorted(scores, key=scores.get, reverse=True):
+        print('retrieve_vector: docid = ', docid, 'score = ', scores.get(docid))
+        #answer.append([docid, scores.get(docid)])
+        answer.append(docid)
+
+    return answer
 
 # Standard boilerplate to call the main() function
 if __name__ == '__main__':
