@@ -2,12 +2,15 @@ import sys
 import re
 import string
 import json
+import csv
 
 # global declarations for doclist, postings, vocabulary
 docids = []
 postings = {}
 vocab = []
 doclength = {}
+doctitles = {}
+docheaders = {}
 
 # main is used for offline testing only
 def main():
@@ -38,17 +41,28 @@ def write_index():
     global postings
     global vocab
     global doclength
+    global doctitles
+    global docheaders
 
-    # writes to index files: docids, vocab, postings
+    # writes to index files: docids, vocab, postings and doclength
     outlist1 = open('docids.txt', 'w')
     outlist2 = open('vocab.txt', 'w')
     outlist3 = open('postings.txt', 'w')
     outlist4 = open('doclength.txt', 'w')
+    titles = csv.writer(open('doctitles.csv', 'w'))
+    headers = csv.writer(open('docheaders.csv', 'w'))
 
     json.dump(docids, outlist1)
     json.dump(vocab, outlist2)
     json.dump(postings, outlist3)
     json.dump(doclength, outlist4)
+
+    for key, val in doctitles.items():
+        print(str(doctitles[key]))
+        titles.writerow([key, val])
+
+    for key, val in docheaders.items():
+        headers.writerow([key, val])
 
     outlist1.close()
     outlist2.close()
@@ -64,14 +78,27 @@ def write_index():
 #               abbreviations and punctuation through regex. Aims to preserve
 #               external tag content.
 # Returns:      String - cleantext
-def clean_html(page_contents):
+def clean_html(url, page_contents):
+    global docheaders
+    global doctitles
     # function to clean html
-    #Keep content from Meta Tags
-    cleantext = re.sub('<meta content=(?:[\s\S]+?)/>', '', page_contents)
     #Seperate content from Title Tags
-    cleantext = re.sub('<title[\s\S]+?title/>', '', cleantext)
+    doc_title_txt = re.findall('<title>(.*?)</title>', page_contents)
+    doctitles[url] = []
+    for t in range(0, len(doc_title_txt)):
+        doc_title_txt[t] = clean_text(doc_title_txt[t])
+        doc_title_txt[t] = [a.lower() for a in doc_title_txt[t].split()]
+        doctitles[url].append(doc_title_txt[t])
+    cleantext = re.sub('<title>(.*?)</title>', '', page_contents)
     #Seperate content from Header Tags
-    cleantext = re.sub('<h\d[\s\S]+?/h\d>', '', cleantext)
+    doc_header_txt = re.findall('<h\d>(.*?)</h\d>', page_contents)
+    docheaders[url] = []
+    for t in range(0, len(doc_header_txt)):
+        doc_header_txt[t] = clean_text(doc_header_txt[t])
+        doc_header_txt[t] = [a.lower() for a in doc_header_txt[t].split()]
+    doc_header_txt[0] = [a for b in doc_header_txt for a in b]
+    docheaders[url].append(doc_header_txt)
+    cleantext = re.sub('<h\d>(.*?)</h\d>', '', cleantext)
     #No JavaScript
     cleantext = re.sub('<script[\s\S]+?/script>', '', cleantext)
     #No CSS
@@ -89,8 +116,12 @@ def clean_html(page_contents):
     #No Table Headers
     cleantext = re.sub('<thead[\s\S]+?>', '', cleantext)
     cleantext = re.sub('<th[\s\S]+?>', '', cleantext)
+    cleantext = clean_text(cleantext)
+    return cleantext
+
+def clean_text(unclean_text):
     #No HTML
-    cleantext = re.sub('<.*?>', ' ', cleantext)
+    cleantext = re.sub('<.*?>', ' ', unclean_text)
     #No Numbers
     cleantext = re.sub('(\d)', '', cleantext)
     #No HTML Special Characters
@@ -103,7 +134,7 @@ def clean_html(page_contents):
     cleantext = re.sub('(\w*\'\w*)', '', cleantext)
     #No Punctuation
     cleantext = re.sub('([\W]+)', ' ', cleantext)
-    return cleantext
+    return cleantext 
 
 # Function:     make_index(url, page_contents)
 # Parameters:   String - url (the url of the page being scraped by PCcrawler.py
@@ -122,9 +153,8 @@ def make_index(url, page_contents):
     global vocab
     global doclength
     
-    cleanUrl = re.sub('http://', '', url)
-    cleanUrl = re.sub('https://', '', cleanUrl)
-    cleanUrl = re.sub('www.', '', cleanUrl)
+    cleanUrl = re.sub('http://www.', '', url)
+    cleanUrl = re.sub('https://www.', '', cleanUrl)
 
     if cleanUrl not in docids:
         # first convert bytes to string if necessary
@@ -136,7 +166,7 @@ def make_index(url, page_contents):
         print('===============================================')
 
         # Send the contents of the scraped page to be cleaned, store output in page_text
-        page_text = clean_html(page_contents)
+        page_text = clean_html(cleanUrl, page_contents)
 
         # This code runs for each URL, therefore important not to overwrite
         # existing data.
@@ -174,7 +204,7 @@ def make_index(url, page_contents):
             if freq != 0:
                 # append that the occurrence of that token to the correct tokenID
                 # entry in postings, with the relevant url source
-                postings[tokenID].append([docids.index(cleanUrl), tokens.count(token)])
+                postings[tokenID].append([docids.index(cleanUrl), freq])
         return
     else: 
         print('===============================================')
