@@ -6,15 +6,16 @@ import math
 import re
 import json
 import csv
-import copy
-import matplotlib.pyplot as plt
-import numpy as np 
+import nltk
+import numpy
 
 # global declarations for doclist, postings, vocabulary
 docids = []
 postings = {}
 vocab = []
 doclength = {}
+doctitles = {}
+docheaders = {}
 results = {}
 
 def main():
@@ -38,7 +39,6 @@ def main():
         i += 1
         print(i, docids[int(docid)])
 
-
 def read_index_files():
     ## reads existing data from index files: docids, vocab, postings
     # uses JSON to preserve list/dictionary data structures
@@ -47,6 +47,8 @@ def read_index_files():
     global postings
     global vocab
     global doclength
+    global doctitles
+    global docheaders
     # open the files
     in_d = open('docids.txt', 'r')
     in_v = open('vocab.txt', 'r')
@@ -57,6 +59,16 @@ def read_index_files():
     vocab = json.load(in_v)
     postings = json.load(in_p)
     doclength = json.load(in_dl)
+    with open('doctitles.csv', newline='') as titles:
+        reader = csv.DictReader(titles)
+        for row in reader:
+            for key, val in row.items():
+                doctitles[key] = val
+    with open('docheaders.csv', newline='') as headers:
+        reader = csv.DictReader(headers)
+        for row in reader:
+            for key, val in row.items():
+                doctitles[key] = val
     # close the files
     in_d.close()
     in_v.close()
@@ -138,15 +150,21 @@ def clean_query(query_terms):
 
 def retrieve_vector(query_terms):
     global docids
-    global doclength
     global vocab
     global postings
+    global docheaders
+    global doctitles
 
     answer = []
     idf = {}
+    collection = 0
     scores = {}
     query_vector = []
     query_set = set(query_terms)
+    title_weight = 2.5
+    header_weight = 1.5
+    is_title = False
+    is_header = False
 
     for term in query_set:
         try:
@@ -154,7 +172,19 @@ def retrieve_vector(query_terms):
         except:
             print('Not found: ', term, ' is not in vocabulary')
             continue
-        idf[termid] = (1+math.log(len(postings.get(str(termid)))))/(len(doclength))
+        for post in postings.get(str(termid)):
+            collection += 1
+
+        idf[termid] = (1+math.log(len(postings.get(str(termid)))))/(collection)
+
+        print(idf[termid])
+        for doc, titleWords in enumerate(doctitles):
+            if term in titleWords:
+                idf[termid] = float(idf.get(termid)) * float(2.5)
+    
+        for doc, headerWords in enumerate(docheaders):
+            if term in headerWords:
+                idf[termid] = float(idf.get(termid)) * float(1.5)
         #print('retrieve_vector: term = ', term, 'termid = ', termid, 'idf = ', idf[termid])
 
     i = -1
