@@ -79,12 +79,13 @@ def write_index():
             for chunk in json.JSONEncoder().iterencode(vocab):
                 b.write(chunk)
 
-        half_post1, half_post2 = split_dict(postings)
+        post1 = {key: value for i, (key, value) in enumerate(postings.items()) if i % 2 == 0}
+        post2 = {key: value for i, (key, value) in enumerate(postings.items()) if i % 2 == 1} 
         with open('postings.txt', 'w') as c:
-            for chunk in json.JSONEncoder().iterencode(half_post1):
+            for chunk in json.JSONEncoder().iterencode(post1):
                 c.write(chunk)
         with open('postings.txt', 'a') as c:
-            for chunk in json.JSONEncoder().iterencode(half_post2):
+            for chunk in json.JSONEncoder().iterencode(post2):
                 c.write(chunk)
 
         with open('doclength.txt', 'w') as d:
@@ -97,15 +98,6 @@ def write_index():
             headers.writerow([key, val])
             
     return
-
-def split_dict(dictionary):
-    n = len(dictionary)/2
-    i = iter(dictionary.items())
-
-    d1 = dict(itertools.islice(i, n))
-    d2 = dict(i)
-
-    return 1, 2
 
 # Function:     clean_html(page_contents)
 # Parameters:   String - page_contents (source code of scraped webpage)
