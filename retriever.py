@@ -6,8 +6,11 @@ import math
 import re
 import json
 import csv
-import nltk
-import numpy
+import operator
+import numpy as plt
+import matplotlib.pyplot as plt
+import copy
+
 
 # global declarations for doclist, postings, vocabulary
 docids = []
@@ -30,14 +33,14 @@ def main():
 
     #answer = retrieve_bool(query_terms)
     answer = retrieve_vector(query_terms)
-    
+
     write_result_files()
 
     print('Query: ', query_terms)
     i = 0
     for docid in answer:
         i += 1
-        print(i, docids[int(docid)])
+        print(i, docids[docid])    
 
 def read_index_files():
     ## reads existing data from index files: docids, vocab, postings
@@ -83,7 +86,7 @@ def write_result_files():
 
     w = csv.writer(open("results.csv", "w"))
     
-    for key,val in results.items():
+    for key,val in enumerate(results):
         w.writerow([key, val])
 
     return
@@ -154,6 +157,7 @@ def retrieve_vector(query_terms):
     global postings
     global docheaders
     global doctitles
+    global results
 
     answer = []
     idf = {}
@@ -161,10 +165,7 @@ def retrieve_vector(query_terms):
     scores = {}
     query_vector = []
     query_set = set(query_terms)
-    title_weight = 2.5
-    header_weight = 1.5
-    is_title = False
-    is_header = False
+    new_results = {}
 
     for term in query_set:
         try:
@@ -201,19 +202,23 @@ def retrieve_vector(query_terms):
             #print((idf.get(termid) * post[1]) / doclength.get(post[0]))
 
     for docid in sorted(scores, key=scores.get, reverse=True):
-        print('retrieve_vector: docid = ', docid, ':: score = ', scores.get(docid))
         results[docids[int(docid)]] = {scores.get(docid)}
-        #answer.append([docid, scores.get(docid)])
-        answer.append(docid)
+
+    results = sorted(results.items(), key=operator.itemgetter(1))
+
+    i = 0
+    for key in results:
+        i += 1
+        answer.append(docids.index(str(key[0])))
+        new_results[key[0]] = key[1]
+        if i != 10:
+            continue
+        else:
+            break
+    
+    results = new_results
 
     return answer
-
-# Function: eval_result()
-# Purpose:  Generate a graph showing the quality of result of the query
-#           to do this, we need the number of documents scanned
-def eval_result():
-    
-    return
 
 # Standard boilerplate to call the main() function
 if __name__ == '__main__':

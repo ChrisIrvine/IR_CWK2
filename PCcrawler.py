@@ -346,7 +346,7 @@ terminal_extensions = set([ \
 
 
 #
-#   return the set of unique page links (in universal format --ie. no relative
+#   return the set of unqiue page links (in universal format --ie. no relative
 #          links) on this url
 #
 #    set of links = extract_all_href_links(url)
@@ -378,29 +378,29 @@ def has_http_in_path(url):
 #   set of links = decide_which_links_to_follow(canonical_url, url, page_links)
 #
 def decide_which_links_to_follow(url_matching_pattern, terminal_extensions, \
-        canonical_url, url, page_links ):
-    links_to_follow = set([])
+		canonical_url, url, page_links ):
+	links_to_follow = set([])
     
     # only follow outgoing links if this originates within domain
     #
-    for link in page_links:
-        #if ( domain_name(link).endswith(url_matching_pattern) and \
-        if ( (link.find(url_matching_pattern) >= 0 ) and \
-            (file_extension(link).lower() not in terminal_extensions) and
-            (not has_http_in_path(link)) ) :
-                links_to_follow.add(link)
-    return links_to_follow
+	for link in page_links:
+		#if ( domain_name(link).endswith(url_matching_pattern) and \
+		if ( (link.find(url_matching_pattern) >= 0 ) and \
+			(file_extension(link).lower() not in terminal_extensions) and
+			(not has_http_in_path(link)) ) :
+				links_to_follow.add(link)
+	return links_to_follow
 
 
 #
 #
 def add_links_to_frontier( page_links, links_to_vist ):
-    global links_to_visit_lock
+	global links_to_visit_lock
 
-    links_to_vist_lock.acquire()
-    for links in page_links:
-        links_to_vist.add(link)
-    links_to_vist_lock.release()
+	links_to_vist_lock.acquire()
+	for links in page_links:
+		links_to_vist.add(link)
+	links_to_vist_lock.release()
 
 
 
@@ -413,16 +413,16 @@ def add_links_to_frontier( page_links, links_to_vist ):
 '''
 def print_header_record(filestream, num_page, page_size, timestamp, url,canonical_url):
     
-    print("* ", str(num_page)+ ':' + str(page_size) + ':' + timestamp, end=' ', file=filestream)
-    try:
-        print(url, file=filestream)
-    except UnicodeEncodeError:
-        print("$" +  url.encode('ascii', 'xmlcharrefreplace'), file=filestream)
+	print("* ", str(num_page)+ ':' + str(page_size) + ':' + timestamp, end=' ', file=filestream) 
+	try: 
+		print(url, file=filestream)
+	except UnicodeEncodeError:
+		print("$" +  url.encode('ascii', 'xmlcharrefreplace'), file=filestream)
 
-    if (url != canonical_url) :
-        print("# ", canonical_url, file=filestream)
+	if (url != canonical_url) :
+		print("# ", canonical_url, file=filestream)
 
-    filestream.flush()  #make sure this prints, if program breaks
+	filestream.flush()  #make sure this prints, if program breaks
 
 def print_error_record(filestream,num_page,timestamp,url,canonical_url,error):
     #
@@ -489,11 +489,11 @@ def print_record(filestream, num_page, page_size, timestamp, \
 
 def  print_frontier(filestream, links_to_visit):
 #
-    print(" ", file=filestream)
-    print("[-- Frontier --]", file=filestream)
-    for edge in links_to_visit:
-        print("", edge, file=filestream)
-    print("[-- Frontier end --]", file=filestream)
+	print(" ", file=filestream)
+	print("[-- Frontier --]", file=filestream) 
+	for edge in links_to_visit:
+		print("", edge, file=filestream)
+	print("[-- Frontier end --]", file=filestream) 
     
 
 #  producers automatically put url on links_already_dispatched
@@ -501,8 +501,8 @@ def  print_frontier(filestream, links_to_visit):
 #  [timestamp, canonical_url, url, page_contents] = producer(...)
 #
 def producer( url, links_already_dispatched):
-    links_already_dispatched.add(url)
-    return get_webpage(url)
+	links_already_dispatched.add(url)
+	return get_webpage(url)
     
 
 
@@ -534,70 +534,70 @@ def init_process_webpage(url_matching_pattern_, \
 #
 ##################################################
 def modular_process_webpage( num_page, \
-    url, canonical_url,  page_contents, links_already_dispatched, \
-    hash_codes_already_visted, url_matching_pattern, filestream):
+	url, canonical_url,  page_contents, links_already_dispatched, \
+	hash_codes_already_visted, url_matching_pattern, filestream):
 
 
-    if (file_extension(canonical_url) in terminal_extensions):
-        return []
+	if (file_extension(canonical_url) in terminal_extensions):
+		return []
 
-    seq_timestamp = datetime.now().strftime("%Y-%m-%d/%H:%M:%S")
+	seq_timestamp = datetime.now().strftime("%Y-%m-%d/%H:%M:%S") 
 
-    # if retrival was not succesful (due to permission, password protection)
-    # then print the url and its error code, and continue with next page
-    #
-    if (page_contents in url_errors.URL_errors):
-        print_error_record(filestream, num_page, seq_timestamp, url, canonical_url, page_contents)
+	# if retrival was not succesful (due to permission, password protection)
+	# then print the url and its error code, and continue with next page
+	#
+	if (page_contents in url_errors.URL_errors):
+		print_error_record(filestream, num_page, seq_timestamp, url, canonical_url, page_contents)
 
-        # if we see that a particular file-type is not a text (html) file,
-        # add its extensions to the terminal file types so we don't keep
-        # chasing these types of files.
-        #
-        # NOTE: this is a heuristic to aid in processing web sites that
-        # contain a lot of user data files (particularly universities and
-        # public sites) which often use non-standard file extensions for
-        # user-generated data.
-        #
-        if (page_contents == url_errors.not_text_URL):
-            ext = file_extension(canonical_url)
-            if (ext != ''):
-                terminal_extensions.add( ext )
+		# if we see that a particular file-type is not a text (html) file,
+		# add its extensions to the terminal file types so we don't keep
+		# chasing these types of files.
+		#
+		# NOTE: this is a heuristic to aid in processing web sites that 
+		# contain a lot of user data files (particularly universities and
+		# public sites) which often use non-standard file extensions for
+		# user-generated data.
+		#
+		if (page_contents == url_errors.not_text_URL):
+			ext = file_extension(canonical_url)
+			if (ext != ''):
+				terminal_extensions.add( ext )
 
-        return []
+		return []
 
-    #otherwise, we have a valid page page
-    #
+	#otherwise, we have a valid page page
+	#
 
-    hash_code = hashlib.sha1(page_contents).hexdigest()
-    #hash_code = sha.new(page_contents).hexdigest()
+	hash_code = hashlib.sha1(page_contents).hexdigest()
+	#hash_code = sha.new(page_contents).hexdigest()
   
 
-    print_header_record(filestream, num_page, len(page_contents), \
-        seq_timestamp, url, canonical_url)
+	print_header_record(filestream, num_page, len(page_contents), \
+		seq_timestamp, url, canonical_url)
 
-     # did we see this hash_code already (under a different url)?
-    # if so, then prefix with '!' and skip printing the links
-    #
-    if (hash_code in hash_codes_already_visited):
-        print("!" + hash_code, file=filestream)
-        print("", file=filestream)
-        return []
-    else:
-        print(hash_code, file=filestream)
+	 # did we see this hash_code already (under a different url)?
+	# if so, then prefix with '!' and skip printing the links
+	#
+	if (hash_code in hash_codes_already_visited):
+		print("!" + hash_code, file=filestream)
+		print("", file=filestream)
+		return []
+	else:
+		print(hash_code, file=filestream)
 
-    page_links = extract_all_href_links(page_contents, canonical_url)
-    follow_links = decide_which_links_to_follow(url_matching_pattern, \
-        terminal_extensions, canonical_url, url, page_links )
+	page_links = extract_all_href_links(page_contents, canonical_url)
+	follow_links = decide_which_links_to_follow(url_matching_pattern, \
+		terminal_extensions, canonical_url, url, page_links )
 
-    #for url in follow_links:
-    for url in page_links:
-        safe_print_url(filestream, url)
-    print(" ", file=filestream)
-    filestream.flush()
+	#for url in follow_links:
+	for url in page_links:
+		safe_print_url(filestream, url)
+	print(" ", file=filestream)
+	filestream.flush()  
 
-    hash_codes_already_visited.add(hash_code)
+	hash_codes_already_visited.add(hash_code)
    
-    return  follow_links
+	return  follow_links 
 
 
 
@@ -608,53 +608,53 @@ def modular_process_webpage( num_page, \
 ##################################################
 def process_webpage( num_page, timestamp, url, canonical_url, page_contents, links_already_dispatched):
 
-    global hash_codes_already_visted, filestream, url_matching_pattern
+	global hash_codes_already_visted, filestream, url_matching_pattern
 
-    # if retrival was not succesful (due to permission, password protection)
-    # then print the url and its error code, and continue with next page
-    #
-    if (page_contents in url_errors.URL_errors):
-        print_error_record(filestream, num_page, timestamp, url, canonical_url, page_contents)
-        return []
+	# if retrival was not succesful (due to permission, password protection)
+	# then print the url and its error code, and continue with next page
+	#
+	if (page_contents in url_errors.URL_errors):
+		print_error_record(filestream, num_page, timestamp, url, canonical_url, page_contents)
+		return []
 
-    #otherwise, we have a valid page page
-    #
-    hash_code = hashlib.sha1(page_contents).hexdigest() #uncommented  DJS 30/9/15
-    #hash_code = sha.new(page_contents).hexdigest()	#commented out DJS 30/9/15
-
-    seq_timestamp = datetime.now().strftime("%Y-%m-%d:%H:%M:%S")
+	#otherwise, we have a valid page page
+	#
+	hash_code = hashlib.sha1(page_contents).hexdigest() #uncommented  DJS 30/9/15
+	#hash_code = sha.new(page_contents).hexdigest()	#commented out DJS 30/9/15
+	
+	seq_timestamp = datetime.now().strftime("%Y-%m-%d:%H:%M:%S") 
         
-    #print_header_record(filestream, num_page, len(page_contents), timestamp, url, canonical_url ) #commented out DJS 30/9/15
+	#print_header_record(filestream, num_page, len(page_contents), timestamp, url, canonical_url ) #commented out DJS 30/9/15
 
-    # did we see this hash_code already (under a different url)?
-    # if so, then prefix with '!' and skip printing the links
-    #
-    if (hash_code in hash_codes_already_visited):
-        print("!" + hash_code, file=filestream)
-        print("", file=filestream)
-        return []
-    else:
-        #print >> filestream, hash_code #commented out DJS 30/9/15
-
-        #print line to show what's being retrieved - for demonstration only
-        #print(num_page, len(page_contents), url, page_contents) #added DJS 30/9/15
-        #print(num_page, len(page_contents), url) #added DJS 30/9/15
-
+	# did we see this hash_code already (under a different url)?
+	# if so, then prefix with '!' and skip printing the links
+	#
+	if (hash_code in hash_codes_already_visited):
+		print("!" + hash_code, file=filestream)
+		print("", file=filestream)
+		return []
+	else:
+		#print >> filestream, hash_code #commented out DJS 30/9/15
+		
+		#print line to show what's being retrieved - for demonstration only
+		#print(num_page, len(page_contents), url, page_contents) #added DJS 30/9/15
+		#print(num_page, len(page_contents), url) #added DJS 30/9/15
+	
 ##################### add code here DJS 30/9/15 ################## 
 
-        make_index(url, page_contents) #added DJS Oct 2015
+		make_index(url, page_contents) #added DJS Oct 2015
 
 ##################################################################
     
-    page_links = extract_all_href_links(page_contents, canonical_url)
-    follow_links = decide_which_links_to_follow(url_matching_pattern, terminal_extensions, canonical_url, url, page_links )
+	page_links = extract_all_href_links(page_contents, canonical_url)
+	follow_links = decide_which_links_to_follow(url_matching_pattern, terminal_extensions, canonical_url, url, page_links )
 
-    #print_links(filestream, follow_links) # commented out DJS Oct 15
-    #print('') # commented out DJS Oct 15
+	#print_links(filestream, follow_links) # commented out DJS Oct 15
+	#print('') # commented out DJS Oct 15
 
-    hash_codes_already_visited.add(hash_code)
-
-    return  follow_links
+	hash_codes_already_visited.add(hash_code)
+	
+	return  follow_links 
    
 ############################################################
 
@@ -665,48 +665,48 @@ def consumer( filestream, url_matching_pattern, max_num_page_visited,   \
              links_to_visit, links_already_dispatched, \
              hash_codes_already_visited) :
 
-    num_edges = 0
-    num_page = 0
+	num_edges = 0
+	num_page = 0
 
   
-    while (len(links_to_visit) > 0) and \
-        ((max_num_page_visited < 1) or (num_page < max_num_page_visited)):
+	while (len(links_to_visit) > 0) and \
+		((max_num_page_visited < 1) or (num_page < max_num_page_visited)):
 
 
-        # here is where we wait for the producer()
-        #
-        url = links_to_visit.pop()
-        timestamp,canonical_url,page_contents = producer(url, links_already_dispatched)
-        # mark canonical links also as "seen"
-        #
-        if (url != canonical_url) :
-            links_already_dispatched.add(canonical_url)
+		# here is where we wait for the producer()
+		#
+		url = links_to_visit.pop()
+		timestamp,canonical_url,page_contents = producer(url, links_already_dispatched)
+		# mark canonical links also as "seen" 
+		#
+		if (url != canonical_url) :
+			links_already_dispatched.add(canonical_url)
     
-        num_page += 1
+		num_page += 1
 
-        links_to_follow = process_webpage(num_page, timestamp, url, canonical_url, page_contents, links_already_dispatched)
+		links_to_follow = process_webpage(num_page, timestamp, url, canonical_url, page_contents, links_already_dispatched)
   
-        num_edges += len(links_to_follow)
-        #print ("consumer: url_matching_pattern =", url_matching_pattern)
-
-        for link in links_to_follow:
-            if (link.find(url_matching_pattern) == -1):
-                continue
-            if (re.search('ears/ears', link)): 	# kludge to stop problem in uea.ac.uk/computing DJS Nov2015
-                #print ("consumer: matched /ears/ears/ url=", link)
-                continue
-            if (link not in links_already_dispatched):
-                #print ("consumer:link =", link)
-                links_to_visit.add(link)
-        ### end of added block ###
-
-        # original commented out DJS Oct 2015
-        #for link in links_to_follow:
+		num_edges += len(links_to_follow)
+		#print ("consumer: url_matching_pattern =", url_matching_pattern)
+		
+		### start of added block ###
+		for link in links_to_follow:
+			if (link.find(url_matching_pattern) == -1): 
+				continue
+			if (re.search('\.pdf', link)): 	# kludge to remove pdfs DJS Nov2017
+				continue
+			if (link not in links_already_dispatched):
+				#print ("consumer:link =", link)
+				links_to_visit.add(link)
+		### end of added block ###
+		
+		# original commented out DJS Oct 2015
+		#for link in links_to_follow:
         #   if link not in links_already_dispatched:
         #         links_to_visit.add(link)
 
 
-    return num_page, num_edges
+	return num_page, num_edges
     
 
 
@@ -721,58 +721,60 @@ from indexer import make_index # added Oct 2015 DJS
 
 def main():
 
-    NUM_THREADS = 4
-    if (len(sys.argv) <= 2)  :
-        print("usage is domain-pattern seed-url  [max-num-pages-visited] ")
-        print("     -w  domain-pattern")
-        print("              | ")
-        print("              ^ ")
-        print(" Ex:  nist.gov http://math.nist.gov 100 ")
-        print("    -w means to continue from a webcrawl dump  (fed into stdin)")
-        print(" ")
-        sys.exit(2)
+	NUM_THREADS = 4
+	if (len(sys.argv) <= 2)  :
+		print("usage is domain-pattern seed-url  [max-num-pages-visited] ")
+		print("     -w  domain-pattern")
+		print("              | ")
+		print("              ^ ")
+		print(" Ex:  nist.gov http://math.nist.gov 100 ")
+		#print("    -w means to continue from a webcrawl dump  (fed into stdin)")
+		print(" ")
+		sys.exit(2)
 
-    links_to_visit = set([])
-    links_already_dispatched = set([])
-    max_num_page_visited = 0     #if 0, then there is no limit
+	links_to_visit = set([])
+	links_already_dispatched = set([])
+	max_num_page_visited = 0     #if 0, then there is no limit
 
 
-    if (sys.argv[1] == "-w"):    #sart from a previous crawl
-        process_wg_file(sys.stdin, links_already_dispatched, \
-            hash_codes_already_visited, links_to_visit )
-        url_matching_pattern = sys.argv[2]
-        ###### if resuming index creation, need to add call here ######
-    else:
-        url_matching_pattern = sys.argv[1]
-        starting_url = sys.argv[2]
-        links_to_visit.add(starting_url)
-    if (len(sys.argv) > 3):
-        max_num_page_visited = int(sys.argv[3])
+	if (sys.argv[1] == "-w"):    #sart from a previous crawl
+		process_wg_file(sys.stdin, links_already_dispatched, \
+			hash_codes_already_visited, links_to_visit )
+		url_matching_pattern = sys.argv[2]
+		###### if resuming index creation, need to add call here ######
+		read_index_files()
+		######
+	else:
+		url_matching_pattern = sys.argv[1]
+		starting_url = sys.argv[2]
+		links_to_visit.add(starting_url)
+	if (len(sys.argv) > 3):
+		max_num_page_visited = int(sys.argv[3])
  
-    print("#!#  domain pattern: ", url_matching_pattern)
-    print(" ")
+	print("#!#  domain pattern: ", url_matching_pattern)
+	print(" ")
 
 
-    # go crawl the web...
-    #
-    num_page, num_edges = \
-    consumer( sys.stdout, url_matching_pattern, max_num_page_visited, \
-        links_to_visit,  links_already_dispatched, hash_codes_already_visited)
+	# go crawl the web...
+	#
+	num_page, num_edges = \
+	consumer( sys.stdout, url_matching_pattern, max_num_page_visited, \
+		links_to_visit,  links_already_dispatched, hash_codes_already_visited)
 
 ############################################
 #	add call here to write results of index creation to file DJS Oct 2015
-    write_index()
+	write_index()
 
 ############################################
   
-    print("\n[-- DONE --]\n", file=sys.stdout)
-    print("read ", num_page,  " pages.", file=sys.stdout)
-    print("number of edges : ", num_edges, file=sys.stdout)
-    #print_frontier(sys.stdout, links_to_visit)
+	print("\n[-- DONE --]\n", file=sys.stdout)
+	print("read ", num_page,  " pages.", file=sys.stdout)
+	print("number of edges : ", num_edges, file=sys.stdout)
+	#print_frontier(sys.stdout, links_to_visit)
 
 
 
 if __name__ == "__main__":
-    main()
+	main()
 
 

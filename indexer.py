@@ -3,6 +3,9 @@ import re
 import string
 import json
 import csv
+import nltk
+import itertools
+from nltk.corpus import wordnet
 
 # global declarations for doclist, postings, vocabulary
 docids = []
@@ -45,31 +48,64 @@ def write_index():
     global docheaders
 
     # writes to index files: docids, vocab, postings and doclength
-    outlist1 = open('docids.txt', 'w')
-    outlist2 = open('vocab.txt', 'w')
-    outlist3 = open('postings.txt', 'w')
-    outlist4 = open('doclength.txt', 'w')
-    titles = csv.writer(open('doctitles.csv', 'w'))
-    headers = csv.writer(open('docheaders.csv', 'w'))
+    try:
+        outlist1 = open('docids.txt', 'w')
+        outlist2 = open('vocab.txt', 'w')
+        outlist3 = open('postings.txt', 'w')
+        outlist4 = open('doclength.txt', 'w')
+        titles = csv.writer(open('doctitles.csv', 'w'))
+        headers = csv.writer(open('docheaders.csv', 'w'))
 
-    json.dump(docids, outlist1)
-    json.dump(vocab, outlist2)
-    json.dump(postings, outlist3)
-    json.dump(doclength, outlist4)
+        json.dump(docids, outlist1)
+        json.dump(vocab, outlist2)
+        json.dump(postings, outlist3)
+        json.dump(doclength, outlist4)
 
-    for key, val in doctitles.items():
-        print(str(doctitles[key]))
-        titles.writerow([key, val])
+        for key, val in doctitles.items():
+            titles.writerow([key, val])
 
-    for key, val in docheaders.items():
-        headers.writerow([key, val])
+        for key, val in docheaders.items():
+            headers.writerow([key, val])
 
-    outlist1.close()
-    outlist2.close()
-    outlist3.close()
-    outlist4.close()
+        outlist1.close()
+        outlist2.close()
+        outlist3.close()
+        outlist4.close()
+    except:
+        with open('docids.txt', 'w') as a:
+            for chunk in json.JSONEncoder().iterencode(docids):
+                a.write(chunk)
+        with open('vocab.txt', 'w') as b:
+            for chunk in json.JSONEncoder().iterencode(vocab):
+                b.write(chunk)
 
+        half_post1, half_post2 = split_dict(postings)
+        with open('postings.txt', 'w') as c:
+            for chunk in json.JSONEncoder().iterencode(half_post1):
+                c.write(chunk)
+        with open('postings.txt', 'a') as c:
+            for chunk in json.JSONEncoder().iterencode(half_post2):
+                c.write(chunk)
+
+        with open('doclength.txt', 'w') as d:
+            for chunk in json.JSONEncoder().iterencode(doclength):
+                d.write(chunk)
+        for key, val in doctitles.items():
+            titles.writerow([key, val])
+
+        for key, val in docheaders.items():
+            headers.writerow([key, val])
+            
     return
+
+def split_dict(dictionary):
+    n = len(dictionary)/2
+    i = iter(dictionary.items())
+
+    d1 = dict(itertools.islice(i, n))
+    d2 = dict(i)
+
+    return 1, 2
 
 # Function:     clean_html(page_contents)
 # Parameters:   String - page_contents (source code of scraped webpage)
@@ -83,40 +119,49 @@ def clean_html(url, page_contents):
     global doctitles
     # function to clean html
     #Seperate content from Title Tags
-    doc_title_txt = re.findall('<title>(.*?)</title>', page_contents)
-    doctitles[url] = []
-    for t in range(0, len(doc_title_txt)):
-        doc_title_txt[t] = clean_text(doc_title_txt[t])
-        doc_title_txt[t] = [a.lower() for a in doc_title_txt[t].split()]
-        doctitles[url].append(doc_title_txt[t])
-    cleantext = re.sub('<title>(.*?)</title>', '', page_contents)
-    #Seperate content from Header Tags
-    doc_header_txt = re.findall('<h\d>(.*?)</h\d>', page_contents)
-    docheaders[url] = []
-    for t in range(0, len(doc_header_txt)):
-        doc_header_txt[t] = clean_text(doc_header_txt[t])
-        doc_header_txt[t] = [a.lower() for a in doc_header_txt[t].split()]
-    doc_header_txt[0] = [a for b in doc_header_txt for a in b]
-    docheaders[url].append(doc_header_txt)
-    cleantext = re.sub('<h\d>(.*?)</h\d>', '', cleantext)
-    #No JavaScript
-    cleantext = re.sub('<script[\s\S]+?/script>', '', cleantext)
-    #No CSS
-    cleantext = re.sub('<style[\s\S]+?/style>', '', cleantext)
-    #No Comments
-    cleantext = re.sub('<!--[\s\S]+?-->', '', cleantext)
-    #No noscript tags
-    cleantext = re.sub('<noscript[\s\S]+?/noscript>', '', cleantext)
-    #No Links
-    cleantext = re.sub('<a[\s\S]+?>', '', cleantext)
-    #No input content
-    cleantext = re.sub('<\s*input[^>]+>', '', cleantext)
-    #No span content
-    cleantext = re.sub('<\s*span[^>]+>', '', cleantext)
-    #No Table Headers
-    cleantext = re.sub('<thead[\s\S]+?>', '', cleantext)
-    cleantext = re.sub('<th[\s\S]+?>', '', cleantext)
-    cleantext = clean_text(cleantext)
+    try:
+        doc_title_txt = re.findall('<title>(.*?)</title>', page_contents)
+        doctitles[url] = []
+        try:
+            for t in range(0, len(doc_title_txt)):
+                doc_title_txt[t] = clean_text(doc_title_txt[t])
+                doc_title_txt[t] = [a.lower() for a in doc_title_txt[t].split()]
+                doctitles[url].append(doc_title_txt[t])
+        except:
+            print('No title found')
+        cleantext = re.sub('<title>(.*?)</title>', '', page_contents)
+        #Seperate content from Header Tags
+        doc_header_txt = re.findall('<h\d>(.*?)</h\d>', page_contents)
+        docheaders[url] = []
+        for t in range(0, len(doc_header_txt)):
+            doc_header_txt[t] = clean_text(doc_header_txt[t])
+            doc_header_txt[t] = [a.lower() for a in doc_header_txt[t].split()]
+        try:
+            doc_header_txt[0] = [a for b in doc_header_txt for a in b]
+            docheaders[url].append(doc_header_txt)
+        except:
+            print('No headers found')
+        cleantext = re.sub('<h\d>(.*?)</h\d>', '', cleantext)
+        #No JavaScript
+        cleantext = re.sub('<script[\s\S]+?/script>', '', cleantext)
+        #No CSS
+        cleantext = re.sub('<style[\s\S]+?/style>', '', cleantext)
+        #No Comments
+        cleantext = re.sub('<!--[\s\S]+?-->', '', cleantext)
+        #No noscript tags
+        cleantext = re.sub('<noscript[\s\S]+?/noscript>', '', cleantext)
+        #No Links
+        cleantext = re.sub('<a[\s\S]+?>', '', cleantext)
+        #No input content
+        cleantext = re.sub('<\s*input[^>]+>', '', cleantext)
+        #No span content
+        cleantext = re.sub('<\s*span[^>]+>', '', cleantext)
+        #No Table Headers
+        cleantext = re.sub('<thead[\s\S]+?>', '', cleantext)
+        cleantext = re.sub('<th[\s\S]+?>', '', cleantext)
+        cleantext = clean_text(cleantext)
+    except:
+        print('[-- Avoided Memory Error --]')
     return cleantext
 
 def clean_text(unclean_text):
@@ -158,8 +203,11 @@ def make_index(url, page_contents):
 
     if cleanUrl not in docids:
         # first convert bytes to string if necessary
-        if isinstance(page_contents, bytes):
-            page_contents = page_contents.decode('utf-8', 'ignore')
+        try:
+            if isinstance(page_contents, bytes):
+                page_contents = page_contents.decode('utf-8', 'ignore')
+        except:
+            page_contents = ''
 
         print('===============================================')
         print('make_index: url = ', url)
@@ -190,7 +238,15 @@ def make_index(url, page_contents):
         # - else
         #   - move onto next token
         # - check the token length is greater than 1
-        vocab.extend([t for t in tokens if t not in vocab if len(t)>1])
+
+        #snow = nltk.stem.SnowballStemmer('english')
+        #vocab.extend([snow.stem(t) for t in tokens if t not in vocab if len(t)>1])   
+        
+        lemma = nltk.stem.wordnet.WordNetLemmatizer()
+        vocab.extend([lemma.lemmatize(t) for t in tokens if t not in vocab if len(t)>1])
+
+        #ps = nltk.stem.PorterStemmer()
+        #vocab.extend([ps.stem(t) for t in tokens if t not in vocab if len(t)>1])
 
         # for each token in vocabulary, get the tokenID (using enumerate)
         for tokenID, token in enumerate(vocab):
