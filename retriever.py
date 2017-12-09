@@ -7,10 +7,6 @@ import re
 import json
 import csv
 import operator
-import numpy as plt
-import matplotlib.pyplot as plt
-import copy
-
 
 # global declarations for doclist, postings, vocabulary
 docids = []
@@ -57,16 +53,22 @@ def read_index_files():
     in_v = open('vocab.txt', 'r')
     in_p = open('postings.txt', 'r')
     in_dl = open('doclength.txt', 'r')
-    # load the data
+    # load the
+    print('loading docids')
     docids = json.load(in_d)
+    print('loading vocab')
     vocab = json.load(in_v)
+    print('loading postings')
     postings = json.load(in_p)
+    print('loading doclengths')
     doclength = json.load(in_dl)
+    print('loading doctitles')
     with open('doctitles.csv', newline='') as titles:
         reader = csv.DictReader(titles)
         for row in reader:
             for key, val in row.items():
                 doctitles[key] = val
+    print('loading docheaders')
     with open('docheaders.csv', newline='') as headers:
         reader = csv.DictReader(headers)
         for row in reader:

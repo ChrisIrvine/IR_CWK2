@@ -14,6 +14,7 @@ vocab = []
 doclength = {}
 doctitles = {}
 docheaders = {}
+docNum = 0
 
 # main is used for offline testing only
 def main():
@@ -37,6 +38,49 @@ def main():
     finally:
         input_file.close()
 
+def read_index_files():
+    ## reads existing data from index files: docids, vocab, postings
+    # uses JSON to preserve list/dictionary data structures
+    # declare refs to global variables
+    global docids
+    global postings
+    global vocab
+    global doclength
+    global doctitles
+    global docheaders
+    # open the files
+    in_d = open('docids.txt', 'r')
+    in_v = open('vocab.txt', 'r')
+    in_p = open('postings.txt', 'r')
+    in_dl = open('doclength.txt', 'r')
+    # load the
+    print('loading docids...')
+    docids = json.load(in_d)
+    print('loading vocab...')
+    vocab = json.load(in_v)
+    print('loading postings...')
+    postings = json.load(in_p)
+    print('loading doclength...')
+    doclength = json.load(in_dl)
+    print('loading doctitles...')
+    with open('doctitles.csv', newline='') as titles:
+        reader = csv.DictReader(titles)
+        for row in reader:
+            for key, val in row.items():
+                doctitles[key] = val
+    print('loading docheaders...')
+    with open('docheaders.csv', newline='') as headers:
+        reader = csv.DictReader(headers)
+        for row in reader:
+            for key, val in row.items():
+                doctitles[key] = val
+    # close the files
+    in_d.close()
+    in_v.close()
+    in_p.close()
+    in_dl.close()
+
+    return
 
 def write_index():
     # declare refs to global variables
@@ -189,9 +233,10 @@ def make_index(url, page_contents):
     global postings
     global vocab
     global doclength
+    global docNum
     
-    cleanUrl = re.sub('http://www.', '', url)
-    cleanUrl = re.sub('https://www.', '', cleanUrl)
+    cleanUrl = re.sub('http://', '', url)
+    cleanUrl = re.sub('https://', '', cleanUrl)
 
     if cleanUrl not in docids:
         # first convert bytes to string if necessary
@@ -202,11 +247,14 @@ def make_index(url, page_contents):
             page_contents = ''
 
         print('===============================================')
-        print('make_index: url = ', url)
+        print('Num: ', docNum, '|| make_index: url = ', cleanUrl)
         print('===============================================')
 
         # Send the contents of the scraped page to be cleaned, store output in page_text
         page_text = clean_html(cleanUrl, page_contents)
+
+        if len(page_text) == 0:
+            return
 
         # This code runs for each URL, therefore important not to overwrite
         # existing data.
@@ -221,8 +269,6 @@ def make_index(url, page_contents):
         # - store the lower case token in tokens
         tokens = [t.lower() for t in page_text.split()]
 
-        doclength[docids.index(cleanUrl)] = len(tokens)
-
         # Using list comprehension; create the vocabulary list, to act like a set:
         # - for every token in tokens
         # - if token does not exist within vocab
@@ -235,7 +281,11 @@ def make_index(url, page_contents):
         #vocab.extend([snow.stem(t) for t in tokens if t not in vocab if len(t)>1])   
         
         lemma = nltk.stem.wordnet.WordNetLemmatizer()
-        vocab.extend([lemma.lemmatize(t) for t in tokens if t not in vocab if len(t)>1])
+        tokens = [lemma.lemmatize(t) for t in tokens]
+        doclength[docids.index(cleanUrl)] = len(tokens)        
+        for token in tokens:
+            if (token not in vocab):
+                vocab.append(token)          
 
         #ps = nltk.stem.PorterStemmer()
         #vocab.extend([ps.stem(t) for t in tokens if t not in vocab if len(t)>1])
@@ -253,6 +303,8 @@ def make_index(url, page_contents):
                 # append that the occurrence of that token to the correct tokenID
                 # entry in postings, with the relevant url source
                 postings[tokenID].append([docids.index(cleanUrl), freq])
+
+        docNum += 1
         return
     else: 
         print('===============================================')

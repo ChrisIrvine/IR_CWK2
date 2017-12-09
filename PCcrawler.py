@@ -714,6 +714,7 @@ def consumer( filestream, url_matching_pattern, max_num_page_visited,   \
 
 from indexer import write_index # added Oct 2015 DJS
 from indexer import make_index # added Oct 2015 DJS
+from indexer import read_index_files
 
 
 def main():
@@ -734,9 +735,9 @@ def main():
   max_num_page_visited = 0     #if 0, then there is no limit
 
 
-  if (sys.argv[1] == "-w"):    #sart from a previous crawl
-    process_wg_file(sys.stdin, links_already_dispatched, \
-      hash_codes_already_visited, links_to_visit )
+  if (sys.argv[1] == "-w"):    #start from a previous crawl
+    print('loading file')
+    #process_wg_file(sys.stdin, links_already_dispatched, hash_codes_already_visited, links_to_visit)
     url_matching_pattern = sys.argv[2]
     ###### if resuming index creation, need to add call here ######
     read_index_files()
