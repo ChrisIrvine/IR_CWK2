@@ -14,6 +14,7 @@ vocab = []
 doclength = {}
 doctitles = {}
 docheaders = {}
+docsnippets = {}
 docNum = 0
 
 # main is used for offline testing only
@@ -48,6 +49,7 @@ def read_index_files():
     global doclength
     global doctitles
     global docheaders
+    global docsnippets
     # open the files
     in_d = open('docids.txt', 'r')
     in_v = open('vocab.txt', 'r')
@@ -73,7 +75,13 @@ def read_index_files():
         reader = csv.DictReader(headers)
         for row in reader:
             for key, val in row.items():
-                doctitles[key] = val
+                docheaders[key] = val
+    print('loading docsnippets...')
+    with open('docsnippets.csv', newline='') as snippets:
+        reader = csv.DictReader(snippets)
+        for row in reader:
+            for key, val in row.items():
+                docsnippets[key] = val
     # close the files
     in_d.close()
     in_v.close()
@@ -90,15 +98,17 @@ def write_index():
     global doclength
     global doctitles
     global docheaders
+    global docsnippets
 
     # writes to index files: docids, vocab, postings and doclength
     try:
-        outlist1 = open('docids.txt', 'w')
-        outlist2 = open('vocab.txt', 'w')
-        outlist3 = open('postings.txt', 'w')
-        outlist4 = open('doclength.txt', 'w')
-        titles = csv.writer(open('doctitles.csv', 'w'))
-        headers = csv.writer(open('docheaders.csv', 'w'))
+        outlist1 = open('docids_stemmed.txt', 'w')
+        outlist2 = open('vocab_stemmed.txt', 'w')
+        outlist3 = open('postings_stemmed.txt', 'w')
+        outlist4 = open('doclength_stemmed.txt', 'w')
+        titles = csv.writer(open('doctitles_stemmed.csv', 'w'))
+        headers = csv.writer(open('docheaders_stemmed.csv', 'w'))
+        snippet = csv.writer(open('snippets_stemmed.csv', 'w'))
 
         json.dump(docids, outlist1)
         json.dump(vocab, outlist2)
@@ -110,6 +120,9 @@ def write_index():
 
         for key, val in docheaders.items():
             headers.writerow([key, val])
+
+        for key, val in docsnippets.items():
+            snippet.writerow([key, val])
 
         outlist1.close()
         outlist2.close()
@@ -140,6 +153,9 @@ def write_index():
 
         for key, val in docheaders.items():
             headers.writerow([key, val])
+
+        for key, val in docsnippets.items():
+            snippet.writerow([key, val])
             
     return
 
@@ -234,6 +250,7 @@ def make_index(url, page_contents):
     global vocab
     global doclength
     global docNum
+    global docsnippets
     
     cleanUrl = re.sub('http://', '', url)
     cleanUrl = re.sub('https://', '', cleanUrl)
@@ -247,7 +264,7 @@ def make_index(url, page_contents):
             page_contents = ''
 
         print('===============================================')
-        print('Num: ', docNum, '|| make_index: url = ', cleanUrl)
+        print('Num:', docNum, '|| make_index: url = ', cleanUrl)
         print('===============================================')
 
         # Send the contents of the scraped page to be cleaned, store output in page_text
@@ -276,19 +293,20 @@ def make_index(url, page_contents):
         # - else
         #   - move onto next token
         # - check the token length is greater than 1
-
-        #snow = nltk.stem.SnowballStemmer('english')
-        #vocab.extend([snow.stem(t) for t in tokens if t not in vocab if len(t)>1])   
         
         lemma = nltk.stem.wordnet.WordNetLemmatizer()
         tokens = [lemma.lemmatize(t) for t in tokens]
+
+        i = 0
+        snippet = []
+        for i in range(0, 30):
+            snippet.append(tokens[i])
+        docsnippets[cleanUrl] = snippet
+
         doclength[docids.index(cleanUrl)] = len(tokens)        
         for token in tokens:
             if (token not in vocab):
                 vocab.append(token)          
-
-        #ps = nltk.stem.PorterStemmer()
-        #vocab.extend([ps.stem(t) for t in tokens if t not in vocab if len(t)>1])
 
         # for each token in vocabulary, get the tokenID (using enumerate)
         for tokenID, token in enumerate(vocab):

@@ -1,0 +1,26 @@
+\begin{thebibliography}{}
+
+\bibitem[Hull et~al., 1996]{stemming}
+Hull, D.~A. et~al. (1996).
+\newblock Stemming algorithms: A case study for detailed evaluation.
+\newblock {\em JASIS}, 47(1):70--84.
+
+\bibitem[Manning et~al., 2008]{IntroIR}
+Manning, C.~D., Raghavan, P., and Sch{\"{u}}tze, H. (2008).
+\newblock {\em Introduction to information retrieval}.
+\newblock Cambridge University Press.
+
+\bibitem[NLTK, 2017]{NLTK}
+NLTK, O. (2017).
+\newblock Natural language toolkit.
+
+\bibitem[Pozo, 2010]{NIST}
+Pozo, R. (2010).
+\newblock Nist web crawler.
+
+\bibitem[Singhal, 2001]{modernIR}
+Singhal, A. (2001).
+\newblock Modern information retrieval: A brief overview.
+\newblock {\em IEEE Data Eng. Bull.}, 24(4):35--43.
+
+\end{thebibliography}

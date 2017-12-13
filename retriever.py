@@ -1,12 +1,11 @@
-#!/usr/bin/python3
-# needs improving to remove forced type conversions
-
 import sys
 import math
 import re
 import json
 import csv
 import operator
+import nltk
+from nltk.corpus import wordnet
 
 # global declarations for doclist, postings, vocabulary
 docids = []
@@ -15,6 +14,7 @@ vocab = []
 doclength = {}
 doctitles = {}
 docheaders = {}
+snippets = {}
 results = {}
 
 def main():
@@ -23,21 +23,37 @@ def main():
         print('usage: ./retriever.py term [term ...]')
         sys.exit(1)
     query_terms = sys.argv[1:]
+
+    #process query
+    query_terms = clean_query(' '.join(query_terms))
+    query_terms_list = [t.lower() for t in query_terms.split()]
+    lemma = nltk.stem.wordnet.WordNetLemmatizer()
+    query_terms_list = [lemma.lemmatize(t) for t in query_terms_list]
+
     answer = []
 
+    # read in index files
     read_index_files()
 
+    # get results
     #answer = retrieve_bool(query_terms)
-    answer = retrieve_vector(query_terms)
+    #answer = retrieve_vector(query_terms)
+    answer = retrieve_vector(query_terms_list)
 
+    # write results
     write_result_files()
 
+    # print results
     print('Query: ', query_terms)
     i = 0
     for docid in answer:
         i += 1
         print(i, docids[docid])    
 
+# Name:         read_index_files()
+# Function:     Read data needed for retrieval in from external files and store the data in internal data structures
+# Parameters:   None
+# Returns:      None
 def read_index_files():
     ## reads existing data from index files: docids, vocab, postings
     # uses JSON to preserve list/dictionary data structures
@@ -48,11 +64,12 @@ def read_index_files():
     global doclength
     global doctitles
     global docheaders
+    global snippets
     # open the files
-    in_d = open('docids.txt', 'r')
-    in_v = open('vocab.txt', 'r')
-    in_p = open('postings.txt', 'r')
-    in_dl = open('doclength.txt', 'r')
+    in_d = open('Final_System/docids.txt', 'r')
+    in_v = open('Final_System/vocab.txt', 'r')
+    in_p = open('Final_System/postings.txt', 'r')
+    in_dl = open('Final_System/doclength.txt', 'r')
     # load the
     print('loading docids')
     docids = json.load(in_d)
@@ -63,17 +80,22 @@ def read_index_files():
     print('loading doclengths')
     doclength = json.load(in_dl)
     print('loading doctitles')
-    with open('doctitles.csv', newline='') as titles:
+    with open('Final_System/doctitles.csv', newline='') as titles:
         reader = csv.DictReader(titles)
         for row in reader:
             for key, val in row.items():
                 doctitles[key] = val
     print('loading docheaders')
-    with open('docheaders.csv', newline='') as headers:
+    with open('Final_System/docheaders.csv', newline='') as headers:
         reader = csv.DictReader(headers)
         for row in reader:
             for key, val in row.items():
-                doctitles[key] = val
+                docheaders[key] = val
+    with open('Final_System/snippets.csv', newline='') as snippet:
+        reader = csv.DictReader(snippet)
+        for row in reader:
+            for key, val in row.items():
+                snippets[key] = val
     # close the files
     in_d.close()
     in_v.close()
@@ -82,6 +104,10 @@ def read_index_files():
 
     return
 
+# Name:         write_result_files()
+# Function:     Write out retrieved documents to external files for further analysis
+# Parameters:   None
+# Returns:      None
 def write_result_files():
     # declare refs to global variables
     global results
@@ -93,6 +119,10 @@ def write_result_files():
 
     return
 
+# Name:         clean_query()
+# Function:     Clean the query so that it matches the vocabulary as much as possible
+# Parameters:   query_terms - [string] - terms that will be searched in the index for
+# Returns:      cleantext - string - cleaned text that can then be used in retrieval
 def clean_query(query_terms):
     # No Numbers
     cleantext = re.sub('(\d)', '', query_terms)
@@ -106,59 +136,17 @@ def clean_query(query_terms):
     cleantext = re.sub('([\W]+)', ' ', cleantext)
     return cleantext
 
-# def retrieve_bool(query_terms):
-#     ## a function to perform Boolean retrieval with ANDed terms
-#     answer = []
-#     operator = ''
-#     #### your code starts here ####
-#     for plist in postings.get(vocab.index(query_terms[0])):
-#         for post in plist:
-#             answer.append(post)
-
-#     for term in query_terms:
-#         if term in ('AND', 'OR', 'NOT'):
-#             operator = term
-#             continue
-#         try:
-#             termid = vocab.index(term)
-#         except:
-#             print('Not found: ', term, ' is not in vocabulary')
-#             continue
-
-#         if operator == 'OR':
-#             for plist in postings.get(termid):
-#                 for post in plist:
-#                     answer.append(post)
-#             answer = sorted(list(set(answer)))
-#             operator = ''
-
-#         elif operator == 'AND':
-#             merge_list = answer[:]
-#             answer = []
-#             for plist in postings.get(termid):
-#                 for post in plist:
-#                     print('post = ', post)
-#                     if post in merge_list:
-#                         answer.append(post)
-#             answer = sorted(list(set(answer)))
-#             merge_list = []
-#             operator = ''
-
-#         elif operator == 'NOT':
-#             for plist in postings.get(termid):
-#                 for post in plist:
-#                     if post in answer:
-#                         answer.remove(post)
-#             operator = ''
-#     #### your code ends here ####
-#     return answer
-
+# Name:         retrieve_vector()
+# Function:     Find the most relevant documents to the query_terms within the index
+# Parameters:   query_terms - [string] - terms that will be searched in the index for
+# Returns:      answer - [string] - list of docids 
 def retrieve_vector(query_terms):
     global docids
     global vocab
     global postings
     global docheaders
     global doctitles
+    global snippets
     global results
 
     answer = []
@@ -184,6 +172,10 @@ def retrieve_vector(query_terms):
         for doc, titleWords in enumerate(doctitles):
             if term in titleWords:
                 idf[termid] = float(idf.get(termid)) * float(2.5)
+
+        for doc, snippetWords in enumerate(snippets):
+            if term in snippetWords:
+                idf[termid] = float(idf.get(termid)) * float(1.75)
     
         for doc, headerWords in enumerate(docheaders):
             if term in headerWords:
